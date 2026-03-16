@@ -23,12 +23,14 @@
 - ⚡ **Low latency** — Passthrough relay (no transcoding) for minimal delay
 - 🔐 **Secure key management** — Stream keys configured via environment variables
 - 📊 **Health monitoring** — HTTP endpoint to check stream status
+- 🎯 **Web Dashboard** — Real-time monitoring dashboard to view stream status, bitrate, and platform health
 
 ## Tech Stack
 
 | Component | Technology |
 |---|---|
 | **RTMP Server** | Nginx with [nginx-rtmp-module](https://github.com/arut/nginx-rtmp-module) |
+| **Dashboard** | Node.js + Express + HTML/CSS/JavaScript |
 | **Containerization** | Docker + Docker Compose |
 | **Cloud** | Microsoft Azure (ACI / App Service / VM) |
 | **Encoder** | OBS Studio (or any RTMP source) |
@@ -48,6 +50,11 @@
                     │  HTTP Status Server (:8080)      │
                     └─────────────────────────────────┘
                               Hosted on Azure
+
+                    ┌─────────────────────────────────┐
+                    │    Dashboard Container (:3000)   │
+                    │  Real-time stream monitoring     │
+                    └─────────────────────────────────┘
 ```
 
 ## Getting Started
@@ -92,6 +99,11 @@ docker-compose up -d
 
 5. **Hit "Start Streaming" in OBS** — your stream will be relayed to all configured platforms! 🎉
 
+6. **Access the dashboard:**
+   - Open your browser and go to `http://localhost:3000`
+   - The dashboard will show real-time status of YouTube, Facebook, and Instagram streams
+   - Monitor bitrate, bandwidth, uptime, and active stream details
+
 ## Project Structure
 
 ```
@@ -100,6 +112,13 @@ multistreamed/
 ├── Dockerfile                # Nginx RTMP image build
 ├── nginx.conf                # RTMP server configuration with push directives
 ├── .env.example              # Example environment variables
+├── dashboard/
+│   ├── Dockerfile            # Dashboard container image
+│   ├── package.json          # Node.js dependencies
+│   ├── src/
+│   │   └── server.js         # Express API server
+│   └── public/
+│       └── index.html        # Dashboard UI
 ├── scripts/
 │   └── entrypoint.sh         # Startup script (substitutes env vars into nginx.conf)
 ├── docs/
@@ -121,11 +140,19 @@ az container create \
     YOUTUBE_STREAM_KEY=<key> \
     FACEBOOK_STREAM_KEY=<key> \
     INSTAGRAM_STREAM_KEY=<key>
+
+az container create \
+  --resource-group multistreamed-rg \
+  --name multistreamed-dashboard \
+  --image your-acr.azurecr.io/multistreamed-dashboard:latest \
+  --ports 3000 \
+  --environment-variables \
+    NGINX_STAT_URL=http://<multistreamed-ip>:8080/stat
 ```
 
 ### Option 2: Azure VM
 
-Deploy Docker on an Azure VM and run `docker-compose up -d`. Ensure NSG rules allow inbound traffic on port **1935** (RTMP).
+Deploy Docker on an Azure VM and run `docker compose up -d`. Ensure NSG rules allow inbound traffic on ports **1935** (RTMP) and **3000** (Dashboard).
 
 _Detailed Azure deployment guide coming soon in `docs/azure-deployment.md`._
 
@@ -141,10 +168,11 @@ _Detailed Azure deployment guide coming soon in `docs/azure-deployment.md`._
 - [x] HTTP health check / status endpoint
 - [x] Azure Container Instances deployment guide
 - [x] Azure VM deployment guide
-- [ ] Web UI dashboard for managing stream keys and destinations
+- [x] Web UI dashboard for monitoring stream status
 - [ ] Stream health monitoring and alerts
 - [ ] Authentication for the RTMP ingest endpoint
 - [ ] Support for additional platforms (Twitch, Kick, etc.)
+- [ ] Dashboard configuration UI for managing stream keys
 
 ## Important Notes
 
