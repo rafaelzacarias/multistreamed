@@ -132,15 +132,15 @@ _Detailed Azure deployment guide coming soon in `docs/azure-deployment.md`._
 ## Roadmap
 
 - [x] Project scaffolding and README
-- [ ] Nginx RTMP Docker image with multi-push config
-- [ ] Environment-based stream key injection (entrypoint script)
-- [ ] Docker Compose setup
-- [ ] YouTube relay support
-- [ ] Facebook Live relay support
-- [ ] Instagram Live relay support (via RTMP bridge)
-- [ ] HTTP health check / status endpoint
-- [ ] Azure Container Instances deployment guide
-- [ ] Azure VM deployment guide
+- [x] Nginx RTMP Docker image with multi-push config
+- [x] Environment-based stream key injection (entrypoint script)
+- [x] Docker Compose setup
+- [x] YouTube relay support
+- [x] Facebook Live relay support
+- [x] Instagram Live relay support (via RTMP bridge)
+- [x] HTTP health check / status endpoint
+- [x] Azure Container Instances deployment guide
+- [x] Azure VM deployment guide
 - [ ] Web UI dashboard for managing stream keys and destinations
 - [ ] Stream health monitoring and alerts
 - [ ] Authentication for the RTMP ingest endpoint

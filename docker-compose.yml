@@ -1,0 +1,15 @@
+services:
+  multistreamed:
+    build: .
+    container_name: multistreamed
+    ports:
+      - "1935:1935"   # RTMP ingest
+      - "8080:8080"   # HTTP health & stats
+    env_file:
+      - .env
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
