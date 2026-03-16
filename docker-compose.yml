@@ -13,3 +13,20 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  dashboard:
+    build: ./dashboard
+    container_name: multistreamed-dashboard
+    ports:
+      - "3000:3000"   # Web dashboard
+    environment:
+      - NGINX_STAT_URL=http://multistreamed:8080/stat
+      - PORT=3000
+    depends_on:
+      - multistreamed
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
