@@ -1,10 +1,34 @@
 #!/bin/sh
 set -e
 
+# Validate template exists
+if [ ! -f /etc/nginx/nginx.conf.template ]; then
+    echo "ERROR: Nginx config template not found at /etc/nginx/nginx.conf.template"
+    exit 1
+fi
+
+# Set defaults for optional variables to prevent literal ${VAR} in config
+: "${YOUTUBE_STREAM_KEY:=}"
+: "${FACEBOOK_STREAM_KEY:=}"
+: "${INSTAGRAM_STREAM_KEY:=}"
+: "${INSTAGRAM_RTMP_HOST:=}"
+
 # Substitute environment variables into the nginx config template
 envsubst '${YOUTUBE_STREAM_KEY} ${FACEBOOK_STREAM_KEY} ${INSTAGRAM_STREAM_KEY} ${INSTAGRAM_RTMP_HOST}' \
     < /etc/nginx/nginx.conf.template \
     > /usr/local/nginx/conf/nginx.conf
+
+# Remove push directives for unconfigured platforms
+if [ -z "$YOUTUBE_STREAM_KEY" ]; then
+    sed -i '/push.*youtube\.com/d' /usr/local/nginx/conf/nginx.conf
+fi
+if [ -z "$FACEBOOK_STREAM_KEY" ]; then
+    sed -i '/push.*facebook\.com/d' /usr/local/nginx/conf/nginx.conf
+fi
+if [ -z "$INSTAGRAM_STREAM_KEY" ] || [ -z "$INSTAGRAM_RTMP_HOST" ]; then
+    sed -i '/push.*INSTAGRAM/d' /usr/local/nginx/conf/nginx.conf
+    sed -i '/push.*rtmp:\/\/\/rtmp/d' /usr/local/nginx/conf/nginx.conf
+fi
 
 echo "========================================"
 echo "  Multistreamed - RTMP Restreamer"

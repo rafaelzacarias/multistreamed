@@ -36,6 +36,8 @@ docker push multistreamedacr.azurecr.io/multistreamed:latest
 
 ### 4. Deploy the Container
 
+> **Security note**: The example below uses `--secure-environment-variables` to prevent stream keys from appearing in container metadata. For production, consider storing keys in [Azure Key Vault](https://learn.microsoft.com/en-us/azure/container-instances/container-instances-volume-secret) instead.
+
 ```bash
 az container create \
   --resource-group multistreamed-rg \
@@ -44,7 +46,7 @@ az container create \
   --ports 1935 8080 \
   --cpu 2 \
   --memory 4 \
-  --environment-variables \
+  --secure-environment-variables \
     YOUTUBE_STREAM_KEY=<your-youtube-key> \
     FACEBOOK_STREAM_KEY=<your-facebook-key> \
     INSTAGRAM_STREAM_KEY=<your-instagram-key> \
