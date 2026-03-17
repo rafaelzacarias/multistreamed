@@ -49,11 +49,16 @@ RUN mkdir -p /var/log/nginx && \
     ln -sf /dev/stderr /var/log/nginx/error.log
 
 # Generate a placeholder video (10-second loop with "Stream Starting Soon" text)
+# Build-time arguments for placeholder video resolution and FPS
+ARG PLACEHOLDER_WIDTH=3840
+ARG PLACEHOLDER_HEIGHT=2160
+ARG PLACEHOLDER_FPS=60
+
 RUN mkdir -p /assets && \
-    ffmpeg -f lavfi -i color=c=0x1a1a2e:s=1920x1080:r=30:d=10 \
+    ffmpeg -f lavfi -i color=c=0x1a1a2e:s=${PLACEHOLDER_WIDTH}x${PLACEHOLDER_HEIGHT}:r=${PLACEHOLDER_FPS}:d=10 \
            -f lavfi -i anullsrc=r=44100:cl=stereo \
-           -vf "drawtext=text='Stream Starting Soon':fontsize=60:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2, \
-                drawtext=text='Please wait...':fontsize=30:fontcolor=0xcccccc:x=(w-text_w)/2:y=(h+text_h)/2+20" \
+           -vf "drawtext=text='Stream Starting Soon':fontsize=120:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2, \
+                drawtext=text='Please wait...':fontsize=60:fontcolor=0xcccccc:x=(w-text_w)/2:y=(h+text_h)/2+40" \
            -c:v libx264 -preset ultrafast -tune stillimage -pix_fmt yuv420p \
            -c:a aac -b:a 128k \
            -t 10 -y /assets/placeholder.mp4
