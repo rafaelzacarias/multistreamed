@@ -78,7 +78,6 @@
 
         .youtube-icon { background: #FF0000; }
         .facebook-icon { background: #1877F2; }
-        .instagram-icon { background: linear-gradient(45deg, #f09433 0%,#e6683c 25%,#dc2743 50%,#cc2366 75%,#bc1888 100%); }
         .server-icon { background: #6c757d; }
 
         .card-title {
@@ -255,23 +254,6 @@
                     </div>
                 </div>
 
-                <!-- Instagram Card -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon instagram-icon">📷</div>
-                        <div class="card-title">Instagram Live</div>
-                    </div>
-                    <span id="instagram-status" class="status-badge status-disconnected">Disconnected</span>
-                    <div class="stat-row">
-                        <span class="stat-label">Bitrate</span>
-                        <span class="stat-value" id="instagram-bitrate">0 kbps</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Viewers</span>
-                        <span class="stat-value" id="instagram-viewers">0</span>
-                    </div>
-                </div>
-
                 <!-- Server Stats Card -->
                 <div class="card server-stats">
                     <div class="card-header">
@@ -330,7 +312,6 @@
             // Update platform statuses
             updatePlatform('youtube', data.platforms.youtube);
             updatePlatform('facebook', data.platforms.facebook);
-            updatePlatform('instagram', data.platforms.instagram);
 
             // Update server stats
             document.getElementById('server-uptime').textContent = formatUptime(data.nginx.uptime);
