@@ -1,16 +1,176 @@
 # Deploying Multistreamed on Azure
 
-This guide covers deploying Multistreamed to Microsoft Azure using two approaches: **Azure Container Instances (ACI)** for a quick serverless deployment, and an **Azure VM** for full control.
+This guide covers deploying Multistreamed to Microsoft Azure using three approaches: **Single-Click Deployment** (fastest), **Azure Container Instances (ACI)** for a quick serverless deployment, and an **Azure VM** for full control.
 
-## Prerequisites
+## Option 1: Single-Click Deployment (Recommended)
+
+The easiest way to deploy Multistreamed is using the "Deploy to Azure" button. This method requires no local tools or command-line knowledge — everything happens in your web browser.
+
+### Prerequisites
+
+- An active [Azure account](https://azure.microsoft.com/)
+- Stream keys for your target platforms:
+  - **YouTube**: Settings → Stream → Stream Key
+  - **Facebook**: Live Producer → Stream Key
+  - **Instagram** (optional): Requires third-party RTMP bridge
+
+### Deployment Steps
+
+1. **Click the Deploy to Azure button** in the [README.md](../README.md) or use this direct link:
+
+   [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Frafaelzacarias%2Fmultistreamed%2Fmain%2Fazuredeploy.json)
+
+2. **Sign in to Azure** if you're not already logged in
+
+3. **Fill in the deployment form:**
+   - **Subscription**: Select your Azure subscription
+   - **Resource Group**: Create new or select existing
+   - **Region**: Choose a location close to you (e.g., East US, West Europe)
+   - **YouTube Stream Key**: Paste your YouTube stream key
+   - **Facebook Stream Key**: Paste your Facebook stream key
+   - **Instagram Stream Key**: (Optional) Leave blank unless you have an RTMP bridge
+   - **Instagram RTMP Host**: (Optional) Your Instagram bridge URL
+   - **CPU Cores**: Select 2 (recommended) or 4 for higher quality streams
+   - **Memory in GB**: Select 4 (recommended) or 8 for higher quality streams
+   - **DNS Name Label**: Leave default (auto-generated) or customize
+
+4. **Review and create:**
+   - Check "I agree to the terms and conditions"
+   - Click **"Create"**
+
+5. **Wait for deployment** (typically 2-3 minutes)
+
+6. **Get your deployment outputs:**
+   - Once deployment completes, go to the resource group
+   - Click on **"Deployments"** in the left menu
+   - Click on the deployment name (usually starts with "Microsoft.Template")
+   - Click on **"Outputs"** to see:
+     - **RTMP URL**: Use this in OBS (e.g., `rtmp://multistreamed-xyz.eastus.azurecontainer.io/live`)
+     - **Dashboard URL**: Open this in your browser to monitor streams
+     - **Stats URL**: Raw XML stats from Nginx RTMP module
+     - **Public IP**: The public IP address of your container group
+
+### Configure OBS
+
+1. Open **OBS Studio**
+2. Go to **Settings → Stream**
+3. Set **Service** to "Custom"
+4. Set **Server** to the RTMP URL from the deployment outputs
+5. Set **Stream Key** to blank (or a custom value if you add authentication later)
+6. Click **"OK"** and start streaming!
+
+### What Gets Deployed
+
+The ARM template creates a single Azure Container Group containing:
+
+- **Multistreamed container**: Nginx RTMP server that receives your stream and relays it to YouTube, Facebook, and Instagram
+- **Dashboard container**: Node.js web application for monitoring stream health
+
+**Exposed ports:**
+- Port 1935: RTMP ingest (for OBS)
+- Port 8080: Stats endpoint
+- Port 3000: Web dashboard
+
+**Resource allocation:**
+- Multistreamed container: 2 CPU cores, 4 GB RAM (configurable)
+- Dashboard container: 0.5 CPU cores, 1 GB RAM
+
+### Cost Estimate
+
+Azure Container Instances pricing is based on CPU and memory usage per second:
+
+- **2 vCPU, 4 GB RAM** (multistreamed) + **0.5 vCPU, 1 GB RAM** (dashboard)
+- Approximately **$70-80/month** if running 24/7
+- **Pay only for what you use** — stop the container group when not streaming to save costs
+
+### Managing Your Deployment
+
+**View container logs:**
+```bash
+az container logs --resource-group <your-rg> --name <container-group-name> --container-name multistreamed
+```
+
+**Stop the containers** (to save costs when not streaming):
+```bash
+az container stop --resource-group <your-rg> --name <container-group-name>
+```
+
+**Start the containers** (when ready to stream again):
+```bash
+az container start --resource-group <your-rg> --name <container-group-name>
+```
+
+**Delete the deployment:**
+```bash
+az group delete --resource-group <your-rg> --yes
+```
+
+### Troubleshooting
+
+**Deployment fails with "InvalidTemplate" error:**
+- Ensure all required stream keys are filled in
+- Check that the DNS name label is unique and follows naming rules (lowercase letters, numbers, hyphens only)
+
+**Can't connect from OBS:**
+- Verify that port 1935 is open by checking the container group's networking settings
+- Ensure you're using the correct RTMP URL from the deployment outputs
+- Check container logs for any startup errors
+
+**Dashboard shows "No stream detected":**
+- Start streaming from OBS first
+- Wait 5-10 seconds for the dashboard to refresh
+- Check that the NGINX_STAT_URL environment variable is correctly set to `http://127.0.0.1:8080/stat`
+
+## Option 2: Azure CLI with ARM Template
+
+If you prefer command-line deployment or need to automate the process, you can use the Azure CLI.
+
+### Prerequisites
 
 - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) installed and authenticated
-- Docker image pushed to a container registry (Azure Container Registry or Docker Hub)
 - Stream keys for your target platforms
 
-## Option 1: Azure Container Instances (ACI)
+### Steps
 
-ACI is the fastest way to get a container running in Azure — no VM to manage.
+1. **Clone the repository and navigate to it:**
+
+```bash
+git clone https://github.com/rafaelzacarias/multistreamed.git
+cd multistreamed
+```
+
+2. **Create a resource group:**
+
+```bash
+az group create --name multistreamed-rg --location eastus
+```
+
+3. **Deploy using the ARM template:**
+
+```bash
+az deployment group create \
+  --resource-group multistreamed-rg \
+  --template-file azuredeploy.json \
+  --parameters youtubeStreamKey="YOUR_YOUTUBE_KEY" \
+               facebookStreamKey="YOUR_FACEBOOK_KEY" \
+               cpuCores="2" \
+               memoryInGb="4"
+```
+
+4. **Get the deployment outputs:**
+
+```bash
+az deployment group show \
+  --resource-group multistreamed-rg \
+  --name azuredeploy \
+  --query properties.outputs
+```
+
+This will show you the RTMP URL, dashboard URL, and other connection details.
+
+## Option 3: Azure Container Instances (Manual)
+
+For manual ACI deployment without the ARM template:
 
 ### 1. Create a Resource Group
 
@@ -66,7 +226,7 @@ az container show \
 
 Use this IP as your RTMP server in OBS: `rtmp://<IP>/live`
 
-## Option 2: Azure Virtual Machine
+## Option 4: Azure Virtual Machine
 
 For more control, deploy on an Azure VM with Docker installed.
 
