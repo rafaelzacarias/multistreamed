@@ -2,6 +2,12 @@
 
 > A self-hosted, Docker-based restreaming service that takes a single RTMP input (from OBS or any encoder) and simultaneously broadcasts to **Facebook**, **Instagram**, and **YouTube**. Designed to deploy on **Azure**.
 
+## 🚀 Quick Deploy
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Frafaelzacarias%2Fmultistreamed%2Fmain%2Fazuredeploy.json)
+
+Click the button above to deploy the entire stack to Azure in minutes! You'll be prompted to enter your stream keys during deployment.
+
 ## Overview
 
 **Multistreamed** works like [Restream.io](https://restream.io) but runs on your own infrastructure. You point OBS (or any RTMP-compatible encoder) at this service, and it relays your stream to multiple platforms at the same time — no third-party middleman.
@@ -128,7 +134,25 @@ multistreamed/
 
 ## Deployment on Azure
 
-### Option 1: Azure Container Instances (ACI)
+### 🎯 Option 1: Single-Click Deployment (Recommended)
+
+The fastest way to get started! Click the **Deploy to Azure** button at the top of this README. The deployment wizard will:
+
+1. Prompt you for your Azure subscription and resource group
+2. Ask for your YouTube and Facebook stream keys (stored securely)
+3. Optionally configure Instagram streaming (requires RTMP bridge)
+4. Deploy both the RTMP server and monitoring dashboard as a container group
+5. Provide you with the RTMP URL and dashboard URL immediately after deployment
+
+**What gets deployed:**
+- Azure Container Instance (ACI) with both containers
+- Public IP with DNS name for easy access
+- Ports 1935 (RTMP), 8080 (stats), and 3000 (dashboard) exposed
+- Secure environment variables for your stream keys
+
+For detailed step-by-step instructions, see [docs/azure-deployment.md](docs/azure-deployment.md#single-click-deployment).
+
+### Option 2: Azure Container Instances (ACI)
 
 ```bash
 az container create \
@@ -150,7 +174,7 @@ az container create \
     NGINX_STAT_URL=http://<multistreamed-ip>:8080/stat
 ```
 
-### Option 2: Azure VM
+### Option 3: Azure VM
 
 Deploy Docker on an Azure VM and run `docker compose up -d`. Ensure NSG rules allow inbound traffic on ports **1935** (RTMP) and **3000** (Dashboard).
 

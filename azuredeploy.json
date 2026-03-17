@@ -1,0 +1,206 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "containerGroupName": {
+      "type": "string",
+      "defaultValue": "multistreamed-cg",
+      "metadata": {
+        "description": "Name for the container group"
+      }
+    },
+    "youtubeStreamKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "YouTube stream key (Settings → Stream → Stream Key)"
+      }
+    },
+    "facebookStreamKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Facebook Live stream key (Live Producer → Stream Key)"
+      }
+    },
+    "instagramStreamKey": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Instagram stream key (optional, requires RTMP bridge)"
+      }
+    },
+    "instagramRtmpHost": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Instagram RTMP bridge host (optional)"
+      }
+    },
+    "cpuCores": {
+      "type": "string",
+      "defaultValue": "2",
+      "allowedValues": [
+        "1",
+        "2",
+        "4"
+      ],
+      "metadata": {
+        "description": "Number of CPU cores for the multistreamed container"
+      }
+    },
+    "memoryInGb": {
+      "type": "string",
+      "defaultValue": "4",
+      "allowedValues": [
+        "1",
+        "2",
+        "4",
+        "8"
+      ],
+      "metadata": {
+        "description": "Amount of memory in GB for the multistreamed container"
+      }
+    },
+    "dnsNameLabel": {
+      "type": "string",
+      "defaultValue": "[concat('multistreamed-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "description": "DNS name label for the public IP. Must be unique within the Azure region."
+      }
+    }
+  },
+  "variables": {
+    "multistreamedContainerName": "multistreamed",
+    "dashboardContainerName": "multistreamed-dashboard",
+    "multistreamedImage": "ghcr.io/rafaelzacarias/multistreamed:latest",
+    "dashboardImage": "ghcr.io/rafaelzacarias/multistreamed-dashboard:latest"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ContainerInstance/containerGroups",
+      "apiVersion": "2023-05-01",
+      "name": "[parameters('containerGroupName')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "containers": [
+          {
+            "name": "[variables('multistreamedContainerName')]",
+            "properties": {
+              "image": "[variables('multistreamedImage')]",
+              "ports": [
+                {
+                  "port": 1935,
+                  "protocol": "TCP"
+                },
+                {
+                  "port": 8080,
+                  "protocol": "TCP"
+                }
+              ],
+              "environmentVariables": [
+                {
+                  "name": "YOUTUBE_STREAM_KEY",
+                  "secureValue": "[parameters('youtubeStreamKey')]"
+                },
+                {
+                  "name": "FACEBOOK_STREAM_KEY",
+                  "secureValue": "[parameters('facebookStreamKey')]"
+                },
+                {
+                  "name": "INSTAGRAM_STREAM_KEY",
+                  "secureValue": "[parameters('instagramStreamKey')]"
+                },
+                {
+                  "name": "INSTAGRAM_RTMP_HOST",
+                  "value": "[parameters('instagramRtmpHost')]"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "[parameters('cpuCores')]",
+                  "memoryInGB": "[parameters('memoryInGb')]"
+                }
+              }
+            }
+          },
+          {
+            "name": "[variables('dashboardContainerName')]",
+            "properties": {
+              "image": "[variables('dashboardImage')]",
+              "ports": [
+                {
+                  "port": 3000,
+                  "protocol": "TCP"
+                }
+              ],
+              "environmentVariables": [
+                {
+                  "name": "NGINX_STAT_URL",
+                  "value": "http://127.0.0.1:8080/stat"
+                },
+                {
+                  "name": "PORT",
+                  "value": "3000"
+                }
+              ],
+              "resources": {
+                "requests": {
+                  "cpu": "0.5",
+                  "memoryInGB": "1"
+                }
+              }
+            }
+          }
+        ],
+        "osType": "Linux",
+        "restartPolicy": "Always",
+        "ipAddress": {
+          "type": "Public",
+          "dnsNameLabel": "[parameters('dnsNameLabel')]",
+          "ports": [
+            {
+              "port": 1935,
+              "protocol": "TCP"
+            },
+            {
+              "port": 8080,
+              "protocol": "TCP"
+            },
+            {
+              "port": 3000,
+              "protocol": "TCP"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "rtmpUrl": {
+      "type": "string",
+      "value": "[concat('rtmp://', reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.fqdn, '/live')]"
+    },
+    "dashboardUrl": {
+      "type": "string",
+      "value": "[concat('http://', reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.fqdn, ':3000')]"
+    },
+    "statsUrl": {
+      "type": "string",
+      "value": "[concat('http://', reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.fqdn, ':8080/stat')]"
+    },
+    "publicIp": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.ip]"
+    },
+    "fqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', parameters('containerGroupName'))).ipAddress.fqdn]"
+    }
+  }
+}
