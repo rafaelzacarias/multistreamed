@@ -192,6 +192,8 @@ _Detailed Azure deployment guide coming soon in `docs/azure-deployment.md`._
 - [x] HTTP health check / status endpoint
 - [x] Azure Container Instances deployment guide
 - [x] Azure VM deployment guide
+- [x] Single-click Azure deployment with ARM template
+- [x] GitHub Actions workflow for automated Docker image publishing
 - [x] Web UI dashboard for monitoring stream status
 - [ ] Stream health monitoring and alerts
 - [ ] Authentication for the RTMP ingest endpoint
