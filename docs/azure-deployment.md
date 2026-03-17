@@ -12,7 +12,6 @@ The easiest way to deploy Multistreamed is using the "Deploy to Azure" button. T
 - Stream keys for your target platforms:
   - **YouTube**: Settings → Stream → Stream Key
   - **Facebook**: Live Producer → Stream Key
-  - **Instagram** (optional): Requires third-party RTMP bridge
 
 ### Deployment Steps
 
@@ -28,8 +27,6 @@ The easiest way to deploy Multistreamed is using the "Deploy to Azure" button. T
    - **Region**: Choose a location close to you (e.g., East US, West Europe)
    - **YouTube Stream Key**: Paste your YouTube stream key
    - **Facebook Stream Key**: Paste your Facebook stream key
-   - **Instagram Stream Key**: (Optional) Leave blank unless you have an RTMP bridge
-   - **Instagram RTMP Host**: (Optional) Your Instagram bridge URL
    - **CPU Cores**: Select 2 (recommended) or 4 for higher quality streams
    - **Memory in GB**: Select 4 (recommended) or 8 for higher quality streams
    - **DNS Name Label**: Leave default (auto-generated) or customize
@@ -63,7 +60,7 @@ The easiest way to deploy Multistreamed is using the "Deploy to Azure" button. T
 
 The ARM template creates a single Azure Container Group containing:
 
-- **Multistreamed container**: Nginx RTMP server that receives your stream and relays it to YouTube, Facebook, and Instagram
+- **Multistreamed container**: Nginx RTMP server that receives your stream and relays it to YouTube and Facebook
 - **Dashboard container**: Node.js web application for monitoring stream health
 
 **Exposed ports:**
@@ -209,8 +206,6 @@ az container create \
   --secure-environment-variables \
     YOUTUBE_STREAM_KEY=<your-youtube-key> \
     FACEBOOK_STREAM_KEY=<your-facebook-key> \
-    INSTAGRAM_STREAM_KEY=<your-instagram-key> \
-    INSTAGRAM_RTMP_HOST=<your-instagram-bridge-host> \
   --restart-policy Always
 ```
 

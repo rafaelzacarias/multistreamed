@@ -1,6 +1,6 @@
 # 🎥 Multistreamed
 
-> A self-hosted, Docker-based restreaming service that takes a single RTMP input (from OBS or any encoder) and simultaneously broadcasts to **Facebook**, **Instagram**, and **YouTube**. Designed to deploy on **Azure**.
+> A self-hosted, Docker-based restreaming service that takes a single RTMP input (from OBS or any encoder) and simultaneously broadcasts to **Facebook** and **YouTube**. Designed to deploy on **Azure**.
 
 ## 🚀 Quick Deploy
 
@@ -16,13 +16,13 @@ Click the button above to deploy the entire stack to Azure in minutes! You'll be
 ┌─────────┐       RTMP        ┌──────────────────┐       RTMP       ┌─────────────┐
 │   OBS   │ ────────────────► │  Multistreamed   │ ──────────────►  │  YouTube    │
 │ Studio  │                   │  (Nginx RTMP +   │ ──────────────►  │  Facebook   │
-└─────────┘                   │   Docker/Azure)  │ ──────────────►  │  Instagram  │
-                              └──────────────────┘                  └─────────────┘
+└─────────┘                   │   Docker/Azure)  │                  └─────────────┘
+                              └──────────────────┘
 ```
 
 ## Features
 
-- 🔀 **Multi-platform relay** — Stream to Facebook, Instagram, and YouTube simultaneously
+- 🔀 **Multi-platform relay** — Stream to Facebook and YouTube simultaneously
 - 📡 **RTMP ingest** — Compatible with OBS Studio, Streamlabs, and any RTMP encoder
 - 🐳 **Dockerized** — Runs in containers for easy deployment and portability
 - ☁️ **Azure-ready** — Designed to deploy on Azure (Container Instances, App Service, or VM)
@@ -40,7 +40,7 @@ Click the button above to deploy the entire stack to Azure in minutes! You'll be
 | **Containerization** | Docker + Docker Compose |
 | **Cloud** | Microsoft Azure (ACI / App Service / VM) |
 | **Encoder** | OBS Studio (or any RTMP source) |
-| **Relay targets** | YouTube RTMP, Facebook Live RTMP, Instagram Live RTMP |
+| **Relay targets** | YouTube RTMP, Facebook Live RTMP |
 
 ## Architecture
 
@@ -50,8 +50,7 @@ Click the button above to deploy the entire stack to Azure in minutes! You'll be
                     │                                  │
  OBS (RTMP) ──────►│  Nginx RTMP Server               │
                     │    ├── push → YouTube RTMP       │
-                    │    ├── push → Facebook RTMP      │
-                    │    └── push → Instagram RTMP     │
+                    │    └── push → Facebook RTMP      │
                     │                                  │
                     │  HTTP Status Server (:8080)      │
                     └─────────────────────────────────┘
@@ -71,7 +70,6 @@ Click the button above to deploy the entire stack to Azure in minutes! You'll be
 - Stream keys for your target platforms:
   - **YouTube**: Settings → Stream → Stream Key
   - **Facebook**: Live Producer → Stream Key
-  - **Instagram**: Requires third-party RTMP bridge (Instagram doesn't natively support RTMP ingest)
 - An [Azure account](https://azure.microsoft.com/) (for cloud deployment)
 
 ### Configuration
@@ -88,7 +86,6 @@ cd multistreamed
 ```env
 YOUTUBE_STREAM_KEY=your-youtube-stream-key
 FACEBOOK_STREAM_KEY=your-facebook-stream-key
-INSTAGRAM_STREAM_KEY=your-instagram-stream-key
 ```
 
 3. **Start the service:**
@@ -107,7 +104,7 @@ docker-compose up -d
 
 6. **Access the dashboard:**
    - Open your browser and go to `http://localhost:3000`
-   - The dashboard will show real-time status of YouTube, Facebook, and Instagram streams
+   - The dashboard will show real-time status of YouTube and Facebook streams
    - Monitor bitrate, bandwidth, uptime, and active stream details
 
 ## Project Structure
@@ -140,9 +137,8 @@ The fastest way to get started! Click the **Deploy to Azure** button at the top 
 
 1. Prompt you for your Azure subscription and resource group
 2. Ask for your YouTube and Facebook stream keys (stored securely)
-3. Optionally configure Instagram streaming (requires RTMP bridge)
-4. Deploy both the RTMP server and monitoring dashboard as a container group
-5. Provide you with the RTMP URL and dashboard URL immediately after deployment
+3. Deploy both the RTMP server and monitoring dashboard as a container group
+4. Provide you with the RTMP URL and dashboard URL immediately after deployment
 
 **What gets deployed:**
 - Azure Container Instance (ACI) with both containers
@@ -162,8 +158,7 @@ az container create \
   --ports 1935 8080 \
   --environment-variables \
     YOUTUBE_STREAM_KEY=<key> \
-    FACEBOOK_STREAM_KEY=<key> \
-    INSTAGRAM_STREAM_KEY=<key>
+    FACEBOOK_STREAM_KEY=<key>
 
 az container create \
   --resource-group multistreamed-rg \
@@ -188,7 +183,6 @@ _Detailed Azure deployment guide coming soon in `docs/azure-deployment.md`._
 - [x] Docker Compose setup
 - [x] YouTube relay support
 - [x] Facebook Live relay support
-- [x] Instagram Live relay support (via RTMP bridge)
 - [x] HTTP health check / status endpoint
 - [x] Azure Container Instances deployment guide
 - [x] Azure VM deployment guide
@@ -202,7 +196,6 @@ _Detailed Azure deployment guide coming soon in `docs/azure-deployment.md`._
 
 ## Important Notes
 
-- **Instagram Limitation**: Instagram doesn't officially support external RTMP ingest. You'll need a third-party bridge tool to relay to Instagram Live. This will be documented in detail.
 - **No Transcoding (by default)**: The service relays the stream as-is. Make sure your OBS output settings meet the requirements of all target platforms.
 - **Bandwidth**: Relaying to N platforms multiplies your upload bandwidth usage by N.
 
