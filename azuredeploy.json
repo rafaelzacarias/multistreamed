@@ -28,20 +28,6 @@
         "description": "Facebook Live stream key (Live Producer → Stream Key)"
       }
     },
-    "instagramStreamKey": {
-      "type": "securestring",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Instagram stream key (optional, requires RTMP bridge)"
-      }
-    },
-    "instagramRtmpHost": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Instagram RTMP bridge host (optional)"
-      }
-    },
     "cpuCores": {
       "type": "string",
       "defaultValue": "2",
@@ -111,14 +97,6 @@
                 {
                   "name": "FACEBOOK_STREAM_KEY",
                   "secureValue": "[parameters('facebookStreamKey')]"
-                },
-                {
-                  "name": "INSTAGRAM_STREAM_KEY",
-                  "secureValue": "[parameters('instagramStreamKey')]"
-                },
-                {
-                  "name": "INSTAGRAM_RTMP_HOST",
-                  "value": "[parameters('instagramRtmpHost')]"
                 }
               ],
               "resources": {
