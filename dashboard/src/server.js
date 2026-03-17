@@ -71,7 +71,6 @@ function formatStats(stats) {
     platforms: {
       youtube: { status: 'disconnected', viewers: 0, bitrate: 0 },
       facebook: { status: 'disconnected', viewers: 0, bitrate: 0 },
-      instagram: { status: 'disconnected', viewers: 0, bitrate: 0 },
     }
   };
 
