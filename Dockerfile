@@ -44,6 +44,11 @@ RUN apt-get update && \
 
 COPY --from=builder /usr/local/nginx /usr/local/nginx
 
+# Prefer IPv4 over IPv6 to avoid "Network is unreachable" errors
+# when pushing to services like Facebook that resolve to IPv6 addresses
+# but the container lacks IPv6 connectivity
+RUN echo "precedence ::ffff:0:0/96 100" >> /etc/gai.conf
+
 RUN mkdir -p /var/log/nginx && \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log
