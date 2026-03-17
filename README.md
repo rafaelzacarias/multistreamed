@@ -30,6 +30,7 @@ Click the button above to deploy the entire stack to Azure in minutes! You'll be
 - 🔐 **Secure key management** — Stream keys configured via environment variables
 - 📊 **Health monitoring** — HTTP endpoint to check stream status
 - 🎯 **Web Dashboard** — Real-time monitoring dashboard to view stream status, bitrate, and platform health
+- 🔄 **Automatic Failover** — Placeholder "Starting Soon" stream plays automatically when no encoder is connected
 
 ## Tech Stack
 
@@ -123,10 +124,78 @@ multistreamed/
 │   └── public/
 │       └── index.html        # Dashboard UI
 ├── scripts/
-│   └── entrypoint.sh         # Startup script (substitutes env vars into nginx.conf)
+│   ├── entrypoint.sh         # Startup script (substitutes env vars into nginx.conf)
+│   ├── on_publish.sh         # NGINX-RTMP hook: called when encoder starts publishing
+│   ├── on_publish_done.sh    # NGINX-RTMP hook: called when encoder stops publishing
+│   ├── start_placeholder.sh  # Manually start the placeholder stream
+│   └── stop_placeholder.sh   # Manually stop the placeholder stream
 ├── docs/
 │   └── azure-deployment.md   # Azure deployment guide
 └── README.md
+```
+
+## Automatic Placeholder / Failover Stream
+
+When no live encoder is connected, **Multistreamed** automatically pushes a "Stream Starting Soon" placeholder video to all configured platforms. The moment your encoder connects, the placeholder stops and your live feed takes over. If the encoder disconnects or crashes, the placeholder automatically restarts after a brief delay.
+
+### How it works
+
+```
+[Container starts]
+      │
+      ▼
+Placeholder stream starts ──► RTMP relay ──► YouTube / Facebook / Instagram
+      │
+      │  Encoder connects (OBS, etc.)
+      ▼
+on_publish.sh fires ──► placeholder killed ──► live feed streams
+      │
+      │  Encoder disconnects / crashes
+      ▼
+on_publish_done.sh fires ──► wait 5s ──► check if reconnected
+      │                                        │
+      │  (not reconnected)                     │ (reconnected → no-op)
+      ▼
+Placeholder stream restarts
+```
+
+This is implemented using NGINX-RTMP's `exec_publish` and `exec_publish_done` event hooks combined with FFmpeg.
+
+### Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `PLACEHOLDER_ENABLED` | `true` | Set to `false` to disable the placeholder stream entirely |
+| `PLACEHOLDER_STREAM_NAME` | `stream` | RTMP stream name the placeholder publishes to (must match your encoder's stream key) |
+| `PLACEHOLDER_RECONNECT_DELAY` | `5` | Seconds to wait after encoder disconnects before starting placeholder |
+
+### Customising the placeholder video
+
+The default placeholder is a 10-second looping video generated at image build time with "Stream Starting Soon" text. To use your own:
+
+1. Build the image normally (this generates `/assets/placeholder.mp4` inside the container)
+2. Replace it by mounting a custom video file:
+
+```yaml
+# docker-compose.yml
+services:
+  multistreamed:
+    volumes:
+      - ./my-placeholder.mp4:/assets/placeholder.mp4
+```
+
+Or rebuild the image after placing a custom `placeholder.mp4` in an `assets/` directory and updating the `Dockerfile` `COPY` instruction.
+
+### Manual control
+
+You can manually start or stop the placeholder from inside the running container:
+
+```bash
+# Start placeholder for stream key "stream"
+docker exec multistreamed /scripts/start_placeholder.sh stream
+
+# Stop placeholder
+docker exec multistreamed /scripts/stop_placeholder.sh
 ```
 
 ## Deployment on Azure
@@ -189,6 +258,7 @@ _Detailed Azure deployment guide coming soon in `docs/azure-deployment.md`._
 - [x] Single-click Azure deployment with ARM template
 - [x] GitHub Actions workflow for automated Docker image publishing
 - [x] Web UI dashboard for monitoring stream status
+- [x] Automatic placeholder/failover stream (NGINX-RTMP hooks + FFmpeg)
 - [ ] Stream health monitoring and alerts
 - [ ] Authentication for the RTMP ingest endpoint
 - [ ] Support for additional platforms (Twitch, Kick, etc.)

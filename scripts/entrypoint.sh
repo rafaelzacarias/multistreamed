@@ -48,4 +48,24 @@ fi
 echo "========================================"
 echo ""
 
-exec /usr/local/nginx/sbin/nginx -g "daemon off;"
+# Start nginx in background
+/usr/local/nginx/sbin/nginx -g "daemon off;" &
+NGINX_PID=$!
+
+# Give nginx a moment to initialize before starting dependent processes
+sleep 2
+
+# Verify nginx started successfully
+if ! kill -0 "$NGINX_PID" 2>/dev/null; then
+    echo "ERROR: nginx failed to start"
+    exit 1
+fi
+
+# Start placeholder if enabled (defaults to true)
+if [ "${PLACEHOLDER_ENABLED:-true}" = "true" ]; then
+    echo "[FAILOVER] Starting initial placeholder stream..."
+    /scripts/start_placeholder.sh "${PLACEHOLDER_STREAM_NAME:-stream}" &
+fi
+
+# Wait for nginx (main process)
+wait $NGINX_PID
