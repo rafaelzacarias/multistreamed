@@ -1,0 +1,87 @@
+name: Validate Nginx Configuration
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'nginx.conf'
+      - 'tests/**'
+      - '.github/workflows/test-nginx-config.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'nginx.conf'
+      - 'tests/**'
+      - '.github/workflows/test-nginx-config.yml'
+
+jobs:
+  validate-nginx-config:
+    runs-on: ubuntu-latest
+    name: Validate Nginx Configuration
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run nginx configuration tests
+        run: |
+          chmod +x tests/test-nginx-config.sh
+          tests/test-nginx-config.sh
+
+      - name: Test config with actual Docker build
+        run: |
+          # Build the image to ensure nginx config is valid in actual environment
+          docker build -t multistreamed-test:${{ github.sha }} \
+            --build-arg PLACEHOLDER_WIDTH=1920 \
+            --build-arg PLACEHOLDER_HEIGHT=1080 \
+            --build-arg PLACEHOLDER_FPS=30 \
+            .
+
+          echo "✅ Docker build successful - nginx config is valid"
+
+      - name: Test config substitution
+        run: |
+          # Test that environment variable substitution works correctly
+          export YOUTUBE_STREAM_KEY="test-youtube-key"
+          export FACEBOOK_STREAM_KEY="test-facebook-key"
+
+          # Simulate what entrypoint.sh does
+          envsubst '${YOUTUBE_STREAM_KEY} ${FACEBOOK_STREAM_KEY}' < nginx.conf > /tmp/nginx-test.conf
+
+          # Verify substitution worked
+          if grep -q "test-youtube-key" /tmp/nginx-test.conf && grep -q "test-facebook-key" /tmp/nginx-test.conf; then
+            echo "✅ Environment variable substitution works correctly"
+          else
+            echo "❌ Environment variable substitution failed"
+            exit 1
+          fi
+
+          # Verify no literal ${VAR} remains
+          if grep -q '\${YOUTUBE_STREAM_KEY}' /tmp/nginx-test.conf || grep -q '\${FACEBOOK_STREAM_KEY}' /tmp/nginx-test.conf; then
+            echo "❌ Found unreplaced environment variables"
+            exit 1
+          fi
+
+          echo "✅ No unreplaced environment variables found"
+
+      - name: Verify resolver is not in rtmp block
+        run: |
+          # This is the critical test that prevents the bug we just fixed
+          if awk '/^rtmp {/,/^}/ {if (/resolver/) exit 1}' nginx.conf; then
+            echo "✅ No resolver directive in rtmp block (correct - nginx-rtmp-module doesn't support it)"
+          else
+            echo "❌ Found resolver directive in rtmp block - this will cause nginx to fail!"
+            echo "The nginx-rtmp-module does not support the 'resolver' directive."
+            echo "DNS resolution for push directives happens at config load time, not continuously."
+            exit 1
+          fi
+
+      - name: Summary
+        if: success()
+        run: |
+          echo ""
+          echo "========================================="
+          echo "  ✅ All Nginx Config Tests Passed!"
+          echo "========================================="
+          echo "The nginx.conf file is valid and ready to use."
+          echo ""

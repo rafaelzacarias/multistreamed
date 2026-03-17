@@ -293,6 +293,7 @@ _Detailed Azure deployment guide coming soon in `docs/azure-deployment.md`._
 - [x] GitHub Actions workflow for automated Docker image publishing
 - [x] Web UI dashboard for monitoring stream status
 - [x] Automatic placeholder/failover stream (NGINX-RTMP hooks + FFmpeg)
+- [x] Automated tests for nginx configuration validation
 - [ ] Stream health monitoring and alerts
 - [ ] Authentication for the RTMP ingest endpoint
 - [ ] Support for additional platforms (Twitch, Kick, etc.)
@@ -303,9 +304,31 @@ _Detailed Azure deployment guide coming soon in `docs/azure-deployment.md`._
 - **No Transcoding (by default)**: The service relays the stream as-is. Make sure your OBS output settings meet the requirements of all target platforms.
 - **Bandwidth**: Relaying to N platforms multiplies your upload bandwidth usage by N.
 
+## Testing
+
+The project includes automated tests to validate nginx configuration changes and prevent common errors.
+
+### Running Tests Locally
+
+```bash
+# Run nginx configuration tests
+./tests/test-nginx-config.sh
+```
+
+The test suite validates:
+- Nginx configuration syntax and structure
+- Required directives and blocks are present
+- **Critical**: No resolver directive in rtmp block (nginx-rtmp-module doesn't support it)
+- Environment variable usage
+- Docker build success
+
+Tests run automatically in CI/CD on pull requests. See [`tests/README.md`](tests/README.md) for more details.
+
 ## Contributing
 
 Contributions are welcome! Feel free to open issues or submit pull requests.
+
+When modifying `nginx.conf`, please run `./tests/test-nginx-config.sh` to validate your changes before committing.
 
 ## License
 
