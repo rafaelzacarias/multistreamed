@@ -171,7 +171,41 @@ This is implemented using NGINX-RTMP's `exec_publish` and `exec_publish_done` ev
 
 ### Customising the placeholder video
 
-The default placeholder is a 10-second looping video generated at image build time with "Stream Starting Soon" text. To use your own:
+The default placeholder is a 10-second looping video generated at image build time with "Stream Starting Soon" text at **4K resolution (3840x2160) and 60fps**.
+
+#### Option 1: Change resolution and FPS at build time
+
+You can customize the placeholder video resolution and frame rate by passing build arguments:
+
+```bash
+docker build \
+  --build-arg PLACEHOLDER_WIDTH=1920 \
+  --build-arg PLACEHOLDER_HEIGHT=1080 \
+  --build-arg PLACEHOLDER_FPS=30 \
+  -t multistreamed .
+```
+
+Or in docker-compose.yml:
+
+```yaml
+services:
+  multistreamed:
+    build:
+      context: .
+      args:
+        PLACEHOLDER_WIDTH: 1920
+        PLACEHOLDER_HEIGHT: 1080
+        PLACEHOLDER_FPS: 30
+```
+
+**Default values:**
+- `PLACEHOLDER_WIDTH`: 3840 (4K)
+- `PLACEHOLDER_HEIGHT`: 2160 (4K)
+- `PLACEHOLDER_FPS`: 60
+
+#### Option 2: Use a custom video file
+
+To use your own pre-made placeholder video:
 
 1. Build the image normally (this generates `/assets/placeholder.mp4` inside the container)
 2. Replace it by mounting a custom video file:
