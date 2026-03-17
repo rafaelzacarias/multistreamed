@@ -2,12 +2,12 @@
 
 ## Overview
 
-The Multistreamed Dashboard is a real-time web interface for monitoring your RTMP streaming status across multiple platforms (YouTube, Facebook, and Instagram). It provides visual feedback on stream health, bitrate, bandwidth, and server statistics.
+The Multistreamed Dashboard is a real-time web interface for monitoring your RTMP streaming status across multiple platforms (YouTube and Facebook). It provides visual feedback on stream health, bitrate, bandwidth, and server statistics.
 
 ## Features
 
 - **Real-time monitoring** - Auto-refreshes every 3 seconds
-- **Platform status** - Visual indicators for YouTube, Facebook, and Instagram
+- **Platform status** - Visual indicators for YouTube and Facebook
 - **Stream metrics** - Bitrate, bandwidth, uptime, and active stream details
 - **Server statistics** - Monitor server uptime, bandwidth in/out, and active streams
 - **Responsive design** - Beautiful gradient UI that works on desktop and mobile
@@ -63,8 +63,7 @@ az container create \
   --ports 1935 8080 \
   --environment-variables \
     YOUTUBE_STREAM_KEY=<key> \
-    FACEBOOK_STREAM_KEY=<key> \
-    INSTAGRAM_STREAM_KEY=<key>
+    FACEBOOK_STREAM_KEY=<key>
 
 # Deploy dashboard
 az container create \
@@ -132,11 +131,6 @@ Returns comprehensive streaming statistics in JSON format.
       "status": "connected",
       "viewers": 0,
       "bitrate": 4128000
-    },
-    "instagram": {
-      "status": "disconnected",
-      "viewers": 0,
-      "bitrate": 0
     }
   }
 }

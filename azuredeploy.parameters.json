@@ -8,12 +8,6 @@
     "facebookStreamKey": {
       "value": "YOUR_FACEBOOK_STREAM_KEY"
     },
-    "instagramStreamKey": {
-      "value": ""
-    },
-    "instagramRtmpHost": {
-      "value": ""
-    },
     "cpuCores": {
       "value": "2"
     },
