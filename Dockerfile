@@ -35,6 +35,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ca-certificates \
         gettext-base \
+        ffmpeg \
+        wget \
         libpcre3 \
         libssl3 \
         zlib1g && \
@@ -46,9 +48,23 @@ RUN mkdir -p /var/log/nginx && \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log
 
+# Generate a placeholder video (10-second loop with "Stream Starting Soon" text)
+RUN mkdir -p /assets && \
+    ffmpeg -f lavfi -i color=c=0x1a1a2e:s=1920x1080:r=30:d=10 \
+           -f lavfi -i anullsrc=r=44100:cl=stereo \
+           -vf "drawtext=text='Stream Starting Soon':fontsize=60:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2, \
+                drawtext=text='Please wait...':fontsize=30:fontcolor=0xcccccc:x=(w-text_w)/2:y=(h+text_h)/2+20" \
+           -c:v libx264 -preset ultrafast -tune stillimage -pix_fmt yuv420p \
+           -c:a aac -b:a 128k \
+           -t 10 -y /assets/placeholder.mp4
+
 COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY scripts/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY scripts/on_publish.sh /scripts/on_publish.sh
+COPY scripts/on_publish_done.sh /scripts/on_publish_done.sh
+COPY scripts/start_placeholder.sh /scripts/start_placeholder.sh
+COPY scripts/stop_placeholder.sh /scripts/stop_placeholder.sh
+RUN chmod +x /entrypoint.sh /scripts/*.sh
 
 EXPOSE 1935
 EXPOSE 8080
