@@ -1,6 +1,23 @@
 #!/bin/sh
 set -e
 
+# Force Facebook RTMP endpoint to resolve via IPv4
+# nginx-rtmp-module resolves push hostnames at config load time and respects /etc/hosts
+# Azure Container Instances lacks IPv6 connectivity, causing Facebook pushes to fail
+# when live-api-s.facebook.com resolves to an IPv6 address
+FB_HOST="live-api-s.facebook.com"
+FB_IPV4=$(getent ahostsv4 "$FB_HOST" 2>/dev/null | head -1 | awk '{print $1}')
+if [ -n "$FB_IPV4" ]; then
+    if sed -i "/$FB_HOST/d" /etc/hosts 2>/dev/null; then
+        echo "$FB_IPV4 $FB_HOST" >> /etc/hosts
+        echo "[ENTRYPOINT] Forced $FB_HOST to IPv4: $FB_IPV4"
+    else
+        echo "[ENTRYPOINT] WARNING: Could not modify /etc/hosts (permission denied?). Facebook push may fail."
+    fi
+else
+    echo "[ENTRYPOINT] WARNING: Could not resolve $FB_HOST to IPv4 (DNS unavailable?). Facebook push may fail."
+fi
+
 # Validate template exists
 if [ ! -f /etc/nginx/nginx.conf.template ]; then
     echo "ERROR: Nginx config template not found at /etc/nginx/nginx.conf.template"
