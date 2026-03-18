@@ -30,7 +30,8 @@ app.get('/api/stats', async (req, res) => {
 app.get('/api/logs', async (req, res) => {
   try {
     const lines = parseInt(req.query.lines) || 50;
-    const safeLines = Math.min(Math.max(lines, 1), 200);
+    const MAX_LOG_LINES = 200;
+    const safeLines = Math.min(Math.max(lines, 1), MAX_LOG_LINES);
     const logs = await fetchNginxLogs(safeLines);
     res.json({ logs });
   } catch (error) {
@@ -101,14 +102,18 @@ function extractLogEntries(stats) {
           const address = client.address?.[0] || '';
           const isPublisher = client.publishing?.[0] !== undefined;
           const dropped = parseInt(client.dropped?.[0] || 0);
-          const connTime = parseInt(client.time?.[0] || 0);
+          const connDuration = parseInt(client.time?.[0] || 0);
           const platform = detectPlatform(address, isPublisher);
-          const connStart = new Date(now.getTime() - connTime);
+          const connStart = new Date(now.getTime() - connDuration);
+
+          // Sanitize values for log messages (strip non-printable chars)
+          const safeAddress = address.replace(/[^\x20-\x7E]/g, '');
+          const safeName = streamName.replace(/[^\x20-\x7E]/g, '');
 
           entries.push({
             timestamp: connStart.toISOString(),
             level: dropped > 100 ? 'warn' : 'info',
-            message: `${isPublisher ? 'Publisher' : `Push to ${platform}`} from ${address} on '${streamName}' - connected ${formatDurationMs(connTime)} ago${dropped > 0 ? `, ${dropped} frames dropped` : ''}`
+            message: `${isPublisher ? 'Publisher' : `Push to ${platform}`} from ${safeAddress} on '${safeName}' - connected ${formatDurationMs(connDuration)} ago${dropped > 0 ? `, ${dropped} frames dropped` : ''}`
           });
         });
       }

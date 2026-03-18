@@ -555,7 +555,9 @@
 
             container.innerHTML = logs.map(log => {
                 const time = new Date(log.timestamp).toLocaleTimeString();
-                return `<div class="log-entry ${escapeHtml(log.level)}"><span class="log-time">${escapeHtml(time)}</span>${escapeHtml(log.message)}</div>`;
+                const validLevels = ['info', 'warn', 'error'];
+                const levelClass = validLevels.includes(log.level) ? log.level : 'info';
+                return `<div class="log-entry ${levelClass}"><span class="log-time">${escapeHtml(time)}</span>${escapeHtml(log.message)}</div>`;
             }).join('');
 
             // Auto-scroll to bottom
