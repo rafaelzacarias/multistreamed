@@ -81,11 +81,11 @@ TMPIMG=$(mktemp /tmp/ffmpeg_test_XXXXXX.png)
 ffmpeg -f lavfi -i "color=c=0x1a1a2e:s=640x480:r=1" \
     -vf "drawtext=text='%{localtime\:%I\\\\\:%M\\\\\:%S %p PT}':fontsize=40:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2" \
     -frames:v 1 -y "$TMPIMG" 2>/dev/null
-FILESIZE=$(stat -c%s "$TMPIMG" 2>/dev/null || echo 0)
+FILESIZE=$(wc -c < "$TMPIMG" 2>/dev/null || echo 0)
 rm -f "$TMPIMG"
-# A frame with rendered text should be significantly larger than a blank frame
-# Blank 640x480 dark frame is ~1-2KB, with text it's typically 5-10KB+
-if [ "$FILESIZE" -gt 3000 ]; then
+# A blank 640x480 dark frame is ~1-2KB; with rendered text it's typically 5-10KB+
+MIN_RENDERED_SIZE=3000
+if [ "$FILESIZE" -gt "$MIN_RENDERED_SIZE" ]; then
     echo -e "${GREEN}✓ PASS${NC} (${FILESIZE} bytes)"
     ((TESTS_PASSED++))
 else
