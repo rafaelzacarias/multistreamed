@@ -40,11 +40,13 @@ if [ -n "$FACEBOOK_STREAM_KEY" ]; then
         echo "[ENTRYPOINT] WARNING: Could not resolve $FB_HOST to IPv4. Using hostname directly."
     fi
 
-    mkdir -p /etc/stunnel
+    mkdir -p /etc/stunnel /var/log
     cat > /etc/stunnel/stunnel.conf << EOF
 pid = /var/run/stunnel.pid
 setuid = nobody
 setgid = nogroup
+output = /var/log/stunnel.log
+debug = notice
 
 [fb-live]
 client = yes
@@ -52,11 +54,19 @@ accept = 127.0.0.1:19350
 connect = ${FB_CONNECT}
 EOF
 
+    # Ensure stunnel log file exists and is writable before dropping privileges
+    touch /var/log/stunnel.log
+    chown nobody:nogroup /var/log/stunnel.log
+
     if ! stunnel /etc/stunnel/stunnel.conf; then
         echo "[ENTRYPOINT] ERROR: Failed to start stunnel TLS proxy for Facebook RTMPS"
+        cat /var/log/stunnel.log 2>/dev/null
         exit 1
     fi
     echo "[ENTRYPOINT] Started stunnel TLS proxy for Facebook RTMPS (127.0.0.1:19350 → $FB_CONNECT)"
+
+    # Tail stunnel log to stdout in background so it appears in Docker logs
+    tail -F /var/log/stunnel.log &
 fi
 
 echo "========================================"

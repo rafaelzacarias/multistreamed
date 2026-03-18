@@ -79,6 +79,7 @@
         .youtube-icon { background: #FF0000; }
         .facebook-icon { background: #1877F2; }
         .server-icon { background: #6c757d; }
+        .logs-icon { background: #343a40; }
 
         .card-title {
             font-size: 1.3em;
@@ -105,7 +106,12 @@
             color: #721c24;
         }
 
-        .status-idle {
+        .status-inactive {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .status-degraded {
             background: #fff3cd;
             color: #856404;
         }
@@ -132,7 +138,19 @@
             font-size: 0.95em;
         }
 
+        .stat-value.warn {
+            color: #856404;
+        }
+
+        .stat-value.error {
+            color: #721c24;
+        }
+
         .server-stats {
+            grid-column: 1 / -1;
+        }
+
+        .logs-section {
             grid-column: 1 / -1;
         }
 
@@ -147,6 +165,38 @@
             color: #333;
             margin-bottom: 10px;
             font-size: 1.1em;
+        }
+
+        .connection-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 0.9em;
+        }
+
+        .connection-details .detail-title {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .protocol-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .protocol-badge.rtmps {
+            background: #d4edda;
+            color: #155724;
         }
 
         .loading {
@@ -188,6 +238,48 @@
             50% { opacity: 0.5; }
         }
 
+        .log-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+
+        .log-entry {
+            color: #a0a0b0;
+            padding: 2px 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-entry.warn {
+            color: #ffc107;
+        }
+
+        .log-entry.error {
+            color: #dc3545;
+        }
+
+        .log-entry.info {
+            color: #a0a0b0;
+        }
+
+        .log-entry .log-time {
+            color: #6c757d;
+            margin-right: 8px;
+        }
+
+        .no-logs {
+            color: #6c757d;
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+
         .metrics-bar {
             width: 100%;
             height: 8px;
@@ -226,15 +318,24 @@
                         <div class="card-icon youtube-icon">▶</div>
                         <div class="card-title">YouTube Live</div>
                     </div>
-                    <span id="youtube-status" class="status-badge status-disconnected">Disconnected</span>
+                    <span id="youtube-status" class="status-badge status-inactive">Inactive</span>
                     <div class="stat-row">
                         <span class="stat-label">Bitrate</span>
                         <span class="stat-value" id="youtube-bitrate">0 kbps</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-label">Viewers</span>
-                        <span class="stat-value" id="youtube-viewers">0</span>
+                        <span class="stat-label">Dropped Frames</span>
+                        <span class="stat-value" id="youtube-dropped">0</span>
                     </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Data Sent</span>
+                        <span class="stat-value" id="youtube-data">0 B</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Connected</span>
+                        <span class="stat-value" id="youtube-uptime">-</span>
+                    </div>
+                    <div id="youtube-details"></div>
                 </div>
 
                 <!-- Facebook Card -->
@@ -243,15 +344,24 @@
                         <div class="card-icon facebook-icon">f</div>
                         <div class="card-title">Facebook Live</div>
                     </div>
-                    <span id="facebook-status" class="status-badge status-disconnected">Disconnected</span>
+                    <span id="facebook-status" class="status-badge status-inactive">Inactive</span>
                     <div class="stat-row">
                         <span class="stat-label">Bitrate</span>
                         <span class="stat-value" id="facebook-bitrate">0 kbps</span>
                     </div>
                     <div class="stat-row">
-                        <span class="stat-label">Viewers</span>
-                        <span class="stat-value" id="facebook-viewers">0</span>
+                        <span class="stat-label">Dropped Frames</span>
+                        <span class="stat-value" id="facebook-dropped">0</span>
                     </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Data Sent</span>
+                        <span class="stat-value" id="facebook-data">0 B</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Connected</span>
+                        <span class="stat-value" id="facebook-uptime">-</span>
+                    </div>
+                    <div id="facebook-details"></div>
                 </div>
 
                 <!-- Server Stats Card -->
@@ -273,10 +383,29 @@
                         <span class="stat-value" id="server-bw-out">0 kbps</span>
                     </div>
                     <div class="stat-row">
+                        <span class="stat-label">Total Data In</span>
+                        <span class="stat-value" id="server-data-in">0 B</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Total Data Out</span>
+                        <span class="stat-value" id="server-data-out">0 B</span>
+                    </div>
+                    <div class="stat-row">
                         <span class="stat-label">Active Streams</span>
                         <span class="stat-value" id="active-streams">0</span>
                     </div>
                     <div id="stream-details"></div>
+                </div>
+
+                <!-- Logs Card -->
+                <div class="card logs-section">
+                    <div class="card-header">
+                        <div class="card-icon logs-icon">📋</div>
+                        <div class="card-title">Connection Log</div>
+                    </div>
+                    <div id="log-container" class="log-container">
+                        <div class="no-logs">Waiting for connections...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -305,6 +434,17 @@
             }
         }
 
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs?lines=50');
+                if (!response.ok) return;
+                const data = await response.json();
+                updateLogs(data.logs);
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+
         function updateDashboard(data) {
             document.getElementById('loading').style.display = 'none';
             document.getElementById('dashboard').style.display = 'block';
@@ -317,6 +457,8 @@
             document.getElementById('server-uptime').textContent = formatUptime(data.nginx.uptime);
             document.getElementById('server-bw-in').textContent = formatBitrate(data.server.bandwidth.in);
             document.getElementById('server-bw-out').textContent = formatBitrate(data.server.bandwidth.out);
+            document.getElementById('server-data-in').textContent = formatBytes(data.server.bytesIn);
+            document.getElementById('server-data-out').textContent = formatBytes(data.server.bytesOut);
             document.getElementById('active-streams').textContent = data.streams.length;
 
             // Update stream details
@@ -324,7 +466,7 @@
             if (data.streams.length > 0) {
                 streamDetails.innerHTML = data.streams.map(stream => `
                     <div class="stream-info">
-                        <h3>📡 Stream: ${stream.name}</h3>
+                        <h3>📡 Stream: ${escapeHtml(stream.name)}</h3>
                         <div class="stat-row">
                             <span class="stat-label">Duration</span>
                             <span class="stat-value">${formatDuration(stream.time)}</span>
@@ -338,8 +480,16 @@
                             <span class="stat-value">${formatBitrate(stream.bandwidth.audio)}</span>
                         </div>
                         <div class="stat-row">
+                            <span class="stat-label">Data In</span>
+                            <span class="stat-value">${formatBytes(stream.bytesIn)}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Data Out</span>
+                            <span class="stat-value">${formatBytes(stream.bytesOut)}</span>
+                        </div>
+                        <div class="stat-row">
                             <span class="stat-label">Clients</span>
-                            <span class="stat-value">${stream.clients.length}</span>
+                            <span class="stat-value">${stream.clients.length} (${stream.clients.filter(c => c.isPublisher).length} publisher, ${stream.clients.filter(c => !c.isPublisher).length} push targets)</span>
                         </div>
                     </div>
                 `).join('');
@@ -351,12 +501,67 @@
         function updatePlatform(platform, data) {
             const statusEl = document.getElementById(`${platform}-status`);
             const bitrateEl = document.getElementById(`${platform}-bitrate`);
-            const viewersEl = document.getElementById(`${platform}-viewers`);
+            const droppedEl = document.getElementById(`${platform}-dropped`);
+            const dataEl = document.getElementById(`${platform}-data`);
+            const uptimeEl = document.getElementById(`${platform}-uptime`);
+            const detailsEl = document.getElementById(`${platform}-details`);
 
-            statusEl.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+            const statusLabels = {
+                connected: 'Connected',
+                disconnected: 'Disconnected',
+                inactive: 'Inactive',
+                degraded: 'Degraded',
+            };
+
+            statusEl.textContent = statusLabels[data.status] || data.status;
             statusEl.className = `status-badge status-${data.status}`;
             bitrateEl.textContent = formatBitrate(data.bitrate);
-            viewersEl.textContent = data.viewers;
+
+            if (data.details) {
+                const dropped = data.details.dropped || 0;
+                droppedEl.textContent = dropped.toLocaleString();
+                droppedEl.className = `stat-value${dropped > 100 ? ' error' : dropped > 0 ? ' warn' : ''}`;
+                dataEl.textContent = formatBytes(data.details.bytesOut || 0);
+                uptimeEl.textContent = formatDuration(data.details.connectionTime || 0);
+
+                detailsEl.innerHTML = `
+                    <div class="connection-details">
+                        <div class="detail-title">Connection Details</div>
+                        <div class="stat-row">
+                            <span class="stat-label">Protocol</span>
+                            <span class="stat-value"><span class="protocol-badge${data.details.protocol === 'RTMPS (via stunnel)' ? ' rtmps' : ''}">${escapeHtml(data.details.protocol)}</span></span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Remote Address</span>
+                            <span class="stat-value">${escapeHtml(data.details.address)}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                droppedEl.textContent = '0';
+                droppedEl.className = 'stat-value';
+                dataEl.textContent = '0 B';
+                uptimeEl.textContent = '-';
+                detailsEl.innerHTML = '';
+            }
+        }
+
+        function updateLogs(logs) {
+            const container = document.getElementById('log-container');
+            if (!logs || logs.length === 0) {
+                container.innerHTML = '<div class="no-logs">No connection events yet</div>';
+                return;
+            }
+
+            container.innerHTML = logs.map(log => {
+                const time = new Date(log.timestamp).toLocaleTimeString();
+                const validLevels = ['info', 'warn', 'error'];
+                const levelClass = validLevels.includes(log.level) ? log.level : 'info';
+                return `<div class="log-entry ${levelClass}"><span class="log-time">${escapeHtml(time)}</span>${escapeHtml(log.message)}</div>`;
+            }).join('');
+
+            // Auto-scroll to bottom
+            container.scrollTop = container.scrollHeight;
         }
 
         function formatBitrate(bytesPerSecond) {
@@ -364,6 +569,14 @@
             if (kbps === 0) return '0 kbps';
             if (kbps < 1024) return `${kbps.toFixed(0)} kbps`;
             return `${(kbps / 1024).toFixed(2)} Mbps`;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            const idx = Math.min(i, units.length - 1);
+            return `${(bytes / Math.pow(1024, idx)).toFixed(idx === 0 ? 0 : 2)} ${units[idx]}`;
         }
 
         function formatUptime(seconds) {
@@ -386,6 +599,12 @@
             return formatUptime(Math.floor(milliseconds / 1000));
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         function showError(message) {
             const errorEl = document.getElementById('error');
             errorEl.textContent = message;
@@ -399,9 +618,13 @@
 
         // Initial fetch
         fetchStats();
+        fetchLogs();
 
         // Auto-refresh every 3 seconds
-        refreshInterval = setInterval(fetchStats, 3000);
+        refreshInterval = setInterval(() => {
+            fetchStats();
+            fetchLogs();
+        }, 3000);
 
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
