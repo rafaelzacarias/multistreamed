@@ -40,9 +40,10 @@ if [ -n "$FACEBOOK_STREAM_KEY" ]; then
         echo "[ENTRYPOINT] WARNING: Could not resolve $FB_HOST to IPv4. Using hostname directly."
     fi
 
-    mkdir -p /etc/stunnel /var/log
+    mkdir -p /etc/stunnel /var/log /var/run/stunnel4
+    chown nobody:nogroup /var/run/stunnel4
     cat > /etc/stunnel/stunnel.conf << EOF
-pid = /var/run/stunnel.pid
+pid = /var/run/stunnel4/stunnel.pid
 setuid = nobody
 setgid = nogroup
 output = /var/log/stunnel.log
