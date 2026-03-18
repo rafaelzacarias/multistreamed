@@ -40,7 +40,8 @@ RUN apt-get update && \
         libpcre3 \
         libssl3 \
         zlib1g \
-        tzdata && \
+        tzdata \
+        stunnel4 && \
     rm -rf /var/lib/apt/lists/*
 
 # Set timezone to Pacific Time so placeholder shows PT clock

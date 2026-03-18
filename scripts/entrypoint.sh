@@ -21,21 +21,39 @@ if [ -z "$YOUTUBE_STREAM_KEY" ]; then
     sed -i '/push.*youtube\.com/d' /usr/local/nginx/conf/nginx.conf
 fi
 if [ -z "$FACEBOOK_STREAM_KEY" ]; then
-    sed -i '/push.*facebook\.com/d' /usr/local/nginx/conf/nginx.conf
+    sed -i '/push.*19350/d' /usr/local/nginx/conf/nginx.conf
 fi
 
-# Replace Facebook hostname with IPv4 address in generated nginx config to avoid IPv6 resolution
-# Azure Container Instances lacks IPv6 outbound connectivity; this bypasses DNS at push time
+# Configure and start stunnel for Facebook RTMPS when Facebook streaming is enabled
+# Facebook requires RTMPS (RTMP over TLS) at rtmps://live-api-s.facebook.com:443/rtmp/
+# stunnel provides a local TLS proxy: nginx pushes plain RTMP to localhost:19350,
+# and stunnel forwards it over TLS to Facebook's RTMPS endpoint
 FB_HOST="live-api-s.facebook.com"
-FB_IPV4=$(getent ahostsv4 "$FB_HOST" 2>/dev/null | head -1 | awk '{print $1}')
-if [ -n "$FB_IPV4" ] && [ -n "$FACEBOOK_STREAM_KEY" ]; then
-    FB_HOST_ESC=$(printf '%s' "$FB_HOST" | sed 's/\./\\./g')
-    sed -i "s|$FB_HOST_ESC|$FB_IPV4|g" /usr/local/nginx/conf/nginx.conf
-    echo "[ENTRYPOINT] Replaced $FB_HOST with IPv4: $FB_IPV4 in nginx config"
-else
-    if [ -n "$FACEBOOK_STREAM_KEY" ]; then
-        echo "[ENTRYPOINT] WARNING: Could not resolve $FB_HOST to IPv4. Facebook push may fail on IPv6-only resolution."
+if [ -n "$FACEBOOK_STREAM_KEY" ]; then
+    # Resolve Facebook hostname to IPv4 to avoid IPv6 issues in Azure Container Instances
+    FB_CONNECT="$FB_HOST:443"
+    FB_IPV4=$(getent ahostsv4 "$FB_HOST" 2>/dev/null | head -1 | awk '{print $1}')
+    if [ -n "$FB_IPV4" ]; then
+        FB_CONNECT="$FB_IPV4:443"
+        echo "[ENTRYPOINT] Resolved $FB_HOST to IPv4: $FB_IPV4 for stunnel"
+    else
+        echo "[ENTRYPOINT] WARNING: Could not resolve $FB_HOST to IPv4. Using hostname directly."
     fi
+
+    mkdir -p /etc/stunnel
+    cat > /etc/stunnel/stunnel.conf << EOF
+pid = /var/run/stunnel.pid
+setuid = nobody
+setgid = nogroup
+
+[fb-live]
+client = yes
+accept = 127.0.0.1:19350
+connect = ${FB_CONNECT}
+EOF
+
+    stunnel /etc/stunnel/stunnel.conf
+    echo "[ENTRYPOINT] Started stunnel TLS proxy for Facebook RTMPS (127.0.0.1:19350 → $FB_CONNECT)"
 fi
 
 echo "========================================"
