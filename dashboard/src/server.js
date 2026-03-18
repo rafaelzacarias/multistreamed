@@ -26,6 +26,107 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+// API endpoint to get recent nginx error log entries
+app.get('/api/logs', async (req, res) => {
+  try {
+    const lines = parseInt(req.query.lines) || 50;
+    const safeLines = Math.min(Math.max(lines, 1), 200);
+    const logs = await fetchNginxLogs(safeLines);
+    res.json({ logs });
+  } catch (error) {
+    console.error('Error fetching logs:', error);
+    res.json({ logs: [], error: error.message });
+  }
+});
+
+// Fetch recent nginx error log entries from Docker stdout/stderr
+function fetchNginxLogs(lines) {
+  return new Promise((resolve) => {
+    // In Docker, nginx error log is symlinked to stderr which goes to Docker logs
+    // We read from the nginx error log directly if accessible
+    try {
+      const logUrl = NGINX_STAT_URL.replace('/stat', '/health');
+      const baseUrl = new URL(NGINX_STAT_URL);
+      const logHost = baseUrl.hostname;
+      const logPort = baseUrl.port || 8080;
+
+      // Fetch the raw stat XML and extract useful log-like information
+      http.get(NGINX_STAT_URL, (response) => {
+        let data = '';
+        response.on('data', (chunk) => { data += chunk; });
+        response.on('end', async () => {
+          try {
+            const stats = await parseXmlStats(data);
+            const logEntries = extractLogEntries(stats);
+            resolve(logEntries.slice(-lines));
+          } catch {
+            resolve([]);
+          }
+        });
+      }).on('error', () => resolve([]));
+    } catch {
+      resolve([]);
+    }
+  });
+}
+
+// Extract log-like entries from the stat data (connection events, errors)
+function extractLogEntries(stats) {
+  const entries = [];
+  const now = new Date();
+
+  const server = stats.rtmp?.server?.[0];
+  if (!server?.application) return entries;
+
+  const applications = Array.isArray(server.application)
+    ? server.application
+    : [server.application];
+
+  applications.forEach(app => {
+    if (!app.live?.[0]?.stream) return;
+
+    const streams = Array.isArray(app.live[0].stream)
+      ? app.live[0].stream
+      : [app.live[0].stream];
+
+    streams.forEach(stream => {
+      const streamName = stream.name?.[0] || 'unknown';
+
+      if (stream.client) {
+        const clients = Array.isArray(stream.client)
+          ? stream.client
+          : [stream.client];
+
+        clients.forEach(client => {
+          const address = client.address?.[0] || '';
+          const isPublisher = client.publishing?.[0] !== undefined;
+          const dropped = parseInt(client.dropped?.[0] || 0);
+          const connTime = parseInt(client.time?.[0] || 0);
+          const platform = detectPlatform(address, isPublisher);
+          const connStart = new Date(now.getTime() - connTime);
+
+          entries.push({
+            timestamp: connStart.toISOString(),
+            level: dropped > 100 ? 'warn' : 'info',
+            message: `${isPublisher ? 'Publisher' : `Push to ${platform}`} from ${address} on '${streamName}' - connected ${formatDurationMs(connTime)} ago${dropped > 0 ? `, ${dropped} frames dropped` : ''}`
+          });
+        });
+      }
+    });
+  });
+
+  return entries.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+}
+
+function formatDurationMs(ms) {
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}h ${minutes % 60}m`;
+}
+
 // Fetch stats from Nginx RTMP module
 function fetchStats(url) {
   return new Promise((resolve, reject) => {
@@ -51,6 +152,15 @@ async function parseXmlStats(xml) {
   return parser.parseStringPromise(xml);
 }
 
+// Detect platform based on client address
+function detectPlatform(address, isPublisher) {
+  if (isPublisher) return 'publisher';
+  // Facebook streams go through stunnel on localhost
+  if (address === '127.0.0.1') return 'facebook';
+  // Everything else is YouTube (or other configured push destinations)
+  return 'youtube';
+}
+
 // Format stats for dashboard consumption
 function formatStats(stats) {
   const result = {
@@ -69,8 +179,8 @@ function formatStats(stats) {
     },
     streams: [],
     platforms: {
-      youtube: { status: 'disconnected', viewers: 0, bitrate: 0 },
-      facebook: { status: 'disconnected', viewers: 0, bitrate: 0 },
+      youtube: { status: 'inactive', viewers: 0, bitrate: 0, details: null },
+      facebook: { status: 'inactive', viewers: 0, bitrate: 0, details: null },
     }
   };
 
@@ -95,43 +205,65 @@ function formatStats(stats) {
               video: parseInt(stream.bw_video?.[0] || 0),
               audio: parseInt(stream.bw_audio?.[0] || 0),
             },
+            meta: {
+              video: stream.meta?.video?.[0] || null,
+              audio: stream.meta?.audio?.[0] || null,
+            },
             bytesIn: parseInt(stream.bytes_in?.[0] || 0),
             bytesOut: parseInt(stream.bytes_out?.[0] || 0),
             clients: [],
           };
 
-          // Process clients (viewers)
+          // Process clients (viewers and push targets)
           if (stream.client) {
             const clients = Array.isArray(stream.client)
               ? stream.client
               : [stream.client];
 
+            const totalBandwidth = streamInfo.bandwidth.video + streamInfo.bandwidth.audio;
+
             clients.forEach(client => {
               const address = client.address?.[0] || '';
               const isPublisher = client.publishing?.[0] !== undefined;
+              const dropped = parseInt(client.dropped?.[0] || 0);
+              const clientTime = parseInt(client.time?.[0] || 0);
 
-              streamInfo.clients.push({
+              const clientInfo = {
                 id: client.id?.[0] || 'unknown',
                 address: address,
-                time: parseInt(client.time?.[0] || 0),
-                dropped: parseInt(client.dropped?.[0] || 0),
+                time: clientTime,
+                dropped: dropped,
+                flashver: client.flashver?.[0] || '',
                 isPublisher: isPublisher,
-              });
+                bytesIn: parseInt(client.bytes_in?.[0] || 0),
+                bytesOut: parseInt(client.bytes_out?.[0] || 0),
+              };
 
-              // Detect platform by analyzing the stream flow
-              // This is a simple heuristic based on the client count and direction
-              if (!isPublisher) {
-                // These are outgoing streams to platforms
-                const totalBandwidth = streamInfo.bandwidth.video + streamInfo.bandwidth.audio;
+              streamInfo.clients.push(clientInfo);
 
-                // We can't reliably detect which platform each client is
-                // So we'll mark all platforms as "connected" if there are active streams
-                if (totalBandwidth > 0) {
-                  result.platforms.youtube.status = 'connected';
-                  result.platforms.youtube.bitrate = totalBandwidth;
-                  result.platforms.facebook.status = 'connected';
-                  result.platforms.facebook.bitrate = totalBandwidth;
-                }
+              // Detect platform based on client address
+              const platform = detectPlatform(address, isPublisher);
+
+              if (platform === 'facebook') {
+                result.platforms.facebook.status = dropped > 100 ? 'degraded' : 'connected';
+                result.platforms.facebook.bitrate = totalBandwidth;
+                result.platforms.facebook.details = {
+                  address: address,
+                  connectionTime: clientTime,
+                  dropped: dropped,
+                  bytesOut: clientInfo.bytesOut,
+                  protocol: 'RTMPS (via stunnel)',
+                };
+              } else if (platform === 'youtube') {
+                result.platforms.youtube.status = dropped > 100 ? 'degraded' : 'connected';
+                result.platforms.youtube.bitrate = totalBandwidth;
+                result.platforms.youtube.details = {
+                  address: address,
+                  connectionTime: clientTime,
+                  dropped: dropped,
+                  bytesOut: clientInfo.bytesOut,
+                  protocol: 'RTMP',
+                };
               }
             });
           }
@@ -151,6 +283,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`========================================`);
   console.log(`Dashboard: http://localhost:${PORT}`);
   console.log(`API:       http://localhost:${PORT}/api/stats`);
+  console.log(`Logs:      http://localhost:${PORT}/api/logs`);
   console.log(`Nginx:     ${NGINX_STAT_URL}`);
   console.log(`========================================`);
 });
