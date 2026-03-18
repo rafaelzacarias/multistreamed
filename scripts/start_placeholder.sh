@@ -18,7 +18,7 @@ BUFSIZE=$((BITRATE * 2))
 ffmpeg -f lavfi -i "color=c=0x1a1a2e:s=${WIDTH}x${HEIGHT}:r=${FPS}" \
     -f lavfi -i anullsrc=r=44100:cl=stereo \
     -vf "drawtext=text='Stream Starting Soon':fontsize=120:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2-60, \
-         drawtext=text='%{localtime\:%I\:%M\:%S %p PT}':fontsize=80:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2+80" \
+         drawtext=text='%{localtime\:%I\\\:%M\\\:%S %p PT}':fontsize=80:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2+80" \
     -c:v libx264 -preset ultrafast -tune stillimage -pix_fmt yuv420p \
     -b:v ${BITRATE}k -maxrate ${BITRATE}k -bufsize ${BUFSIZE}k \
     -g ${GOP} -keyint_min ${GOP} -sc_threshold 0 \
