@@ -39,8 +39,12 @@ RUN apt-get update && \
         wget \
         libpcre3 \
         libssl3 \
-        zlib1g && \
+        zlib1g \
+        tzdata && \
     rm -rf /var/lib/apt/lists/*
+
+# Set timezone to Pacific Time so placeholder shows PT clock
+ENV TZ=America/Los_Angeles
 
 COPY --from=builder /usr/local/nginx /usr/local/nginx
 
@@ -53,20 +57,10 @@ RUN mkdir -p /var/log/nginx && \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log
 
-# Generate a placeholder video (10-second loop with "Stream Starting Soon" text)
-# Build-time arguments for placeholder video resolution and FPS
-ARG PLACEHOLDER_WIDTH=3840
-ARG PLACEHOLDER_HEIGHT=2160
-ARG PLACEHOLDER_FPS=60
-
-RUN mkdir -p /assets && \
-    ffmpeg -f lavfi -i color=c=0x1a1a2e:s=${PLACEHOLDER_WIDTH}x${PLACEHOLDER_HEIGHT}:r=${PLACEHOLDER_FPS}:d=10 \
-           -f lavfi -i anullsrc=r=44100:cl=stereo \
-           -vf "drawtext=text='Stream Starting Soon':fontsize=120:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2, \
-                drawtext=text='Please wait...':fontsize=60:fontcolor=0xcccccc:x=(w-text_w)/2:y=(h+text_h)/2+40" \
-           -c:v libx264 -preset ultrafast -tune stillimage -pix_fmt yuv420p \
-           -c:a aac -b:a 128k \
-           -t 10 -y /assets/placeholder.mp4
+# Placeholder video resolution and FPS defaults (used at runtime by start_placeholder.sh)
+ENV PLACEHOLDER_WIDTH=3840
+ENV PLACEHOLDER_HEIGHT=2160
+ENV PLACEHOLDER_FPS=60
 
 COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY scripts/entrypoint.sh /entrypoint.sh
