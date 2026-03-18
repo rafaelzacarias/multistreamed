@@ -57,10 +57,11 @@ RUN mkdir -p /var/log/nginx && \
     ln -sf /dev/stdout /var/log/nginx/access.log && \
     ln -sf /dev/stderr /var/log/nginx/error.log
 
-# Placeholder video resolution and FPS defaults (used at runtime by start_placeholder.sh)
+# Placeholder video resolution, FPS, and bitrate defaults (used at runtime by start_placeholder.sh)
 ENV PLACEHOLDER_WIDTH=3840
 ENV PLACEHOLDER_HEIGHT=2160
 ENV PLACEHOLDER_FPS=60
+ENV PLACEHOLDER_BITRATE=23500
 
 COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY scripts/entrypoint.sh /entrypoint.sh

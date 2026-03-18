@@ -168,10 +168,11 @@ This is implemented using NGINX-RTMP's `exec_publish` and `exec_publish_done` ev
 | `PLACEHOLDER_ENABLED` | `true` | Set to `false` to disable the placeholder stream entirely |
 | `PLACEHOLDER_STREAM_NAME` | `stream` | RTMP stream name the placeholder publishes to (must match your encoder's stream key) |
 | `PLACEHOLDER_RECONNECT_DELAY` | `5` | Seconds to wait after encoder disconnects before starting placeholder |
+| `PLACEHOLDER_BITRATE` | `23500` | Video bitrate in Kbps for the placeholder stream (should match your target platform requirements) |
 
 ### Customising the placeholder video
 
-The default placeholder is a 10-second looping video generated at image build time with "Stream Starting Soon" text at **4K resolution (3840x2160) and 60fps**.
+The default placeholder is a 10-second looping video generated at image build time with "Stream Starting Soon" text at **4K resolution (3840x2160) and 60fps** at **23500 Kbps**.
 
 #### Option 1: Change resolution and FPS at build time
 
@@ -182,6 +183,7 @@ docker build \
   --build-arg PLACEHOLDER_WIDTH=1920 \
   --build-arg PLACEHOLDER_HEIGHT=1080 \
   --build-arg PLACEHOLDER_FPS=30 \
+  --build-arg PLACEHOLDER_BITRATE=4500 \
   -t multistreamed .
 ```
 
@@ -196,12 +198,14 @@ services:
         PLACEHOLDER_WIDTH: 1920
         PLACEHOLDER_HEIGHT: 1080
         PLACEHOLDER_FPS: 30
+        PLACEHOLDER_BITRATE: 4500
 ```
 
 **Default values:**
 - `PLACEHOLDER_WIDTH`: 3840 (4K)
 - `PLACEHOLDER_HEIGHT`: 2160 (4K)
 - `PLACEHOLDER_FPS`: 60
+- `PLACEHOLDER_BITRATE`: 23500 (Kbps)
 
 #### Option 2: Use a custom video file
 
