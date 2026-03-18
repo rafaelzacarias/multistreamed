@@ -1,0 +1,46 @@
+name: Validate FFmpeg Drawtext Filters
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'scripts/start_placeholder.sh'
+      - 'scripts/on_publish_done.sh'
+      - 'tests/test-ffmpeg-drawtext.sh'
+      - '.github/workflows/test-ffmpeg-drawtext.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'scripts/start_placeholder.sh'
+      - 'scripts/on_publish_done.sh'
+      - 'tests/test-ffmpeg-drawtext.sh'
+      - '.github/workflows/test-ffmpeg-drawtext.yml'
+
+jobs:
+  validate-ffmpeg-drawtext:
+    runs-on: ubuntu-latest
+    name: Validate FFmpeg Drawtext Filters
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Run FFmpeg drawtext tests
+        run: |
+          chmod +x tests/test-ffmpeg-drawtext.sh
+          tests/test-ffmpeg-drawtext.sh
+
+      - name: Summary
+        if: success()
+        run: |
+          echo ""
+          echo "========================================="
+          echo "  ✅ All FFmpeg Drawtext Tests Passed!"
+          echo "========================================="
+          echo "The drawtext filters are valid and will render correctly."
+          echo ""
