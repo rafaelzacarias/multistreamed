@@ -52,7 +52,10 @@ accept = 127.0.0.1:19350
 connect = ${FB_CONNECT}
 EOF
 
-    stunnel /etc/stunnel/stunnel.conf
+    if ! stunnel /etc/stunnel/stunnel.conf; then
+        echo "[ENTRYPOINT] ERROR: Failed to start stunnel TLS proxy for Facebook RTMPS"
+        exit 1
+    fi
     echo "[ENTRYPOINT] Started stunnel TLS proxy for Facebook RTMPS (127.0.0.1:19350 → $FB_CONNECT)"
 fi
 
