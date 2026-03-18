@@ -1,4 +1,7 @@
 #!/bin/sh
 echo "[FAILOVER] Stopping placeholder stream..."
-pkill -f "ffmpeg.*placeholder" 2>/dev/null || true
+if [ -f /tmp/placeholder.pid ]; then
+    kill "$(cat /tmp/placeholder.pid)" 2>/dev/null || true
+    rm -f /tmp/placeholder.pid
+fi
 echo "[FAILOVER] Placeholder stopped."
