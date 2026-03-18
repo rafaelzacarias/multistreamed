@@ -10,7 +10,11 @@ echo "[FAILOVER] Starting placeholder for '$STREAM_NAME'..."
 
 # Kill any existing placeholder process using PID file
 if [ -f /tmp/placeholder.pid ]; then
-    kill "$(cat /tmp/placeholder.pid)" 2>/dev/null || true
+    OLD_PID=$(cat /tmp/placeholder.pid)
+    # Verify the PID still belongs to an ffmpeg process before killing
+    if [ -f "/proc/$OLD_PID/cmdline" ] && tr '\0' ' ' < "/proc/$OLD_PID/cmdline" 2>/dev/null | grep -q ffmpeg; then
+        kill "$OLD_PID" 2>/dev/null || true
+    fi
     rm -f /tmp/placeholder.pid
 fi
 
