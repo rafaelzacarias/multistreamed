@@ -20,6 +20,8 @@ jobs:
   validate-ffmpeg-drawtext:
     runs-on: ubuntu-latest
     name: Validate FFmpeg Drawtext Filters
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
