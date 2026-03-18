@@ -13,9 +13,9 @@ Click the button above to deploy the entire stack to Azure in minutes! You'll be
 **Multistreamed** works like [Restream.io](https://restream.io) but runs on your own infrastructure. You point OBS (or any RTMP-compatible encoder) at this service, and it relays your stream to multiple platforms at the same time — no third-party middleman.
 
 ```
-┌─────────┐       RTMP        ┌──────────────────┐       RTMP       ┌─────────────┐
+┌─────────┐       RTMP        ┌──────────────────┐       RTMP        ┌─────────────┐
 │   OBS   │ ────────────────► │  Multistreamed   │ ──────────────►  │  YouTube    │
-│ Studio  │                   │  (Nginx RTMP +   │ ──────────────►  │  Facebook   │
+│ Studio  │                   │  (Nginx RTMP +   │ ──────RTMPS───►  │  Facebook   │
 └─────────┘                   │   Docker/Azure)  │                  └─────────────┘
                               └──────────────────┘
 ```
@@ -41,7 +41,7 @@ Click the button above to deploy the entire stack to Azure in minutes! You'll be
 | **Containerization** | Docker + Docker Compose |
 | **Cloud** | Microsoft Azure (ACI / App Service / VM) |
 | **Encoder** | OBS Studio (or any RTMP source) |
-| **Relay targets** | YouTube RTMP, Facebook Live RTMP |
+| **Relay targets** | YouTube RTMP, Facebook Live RTMPS |
 
 ## Architecture
 
@@ -51,7 +51,7 @@ Click the button above to deploy the entire stack to Azure in minutes! You'll be
                     │                                  │
  OBS (RTMP) ──────►│  Nginx RTMP Server               │
                     │    ├── push → YouTube RTMP       │
-                    │    └── push → Facebook RTMP      │
+                    │    └── push → Facebook RTMPS     │
                     │                                  │
                     │  HTTP Status Server (:8080)      │
                     └─────────────────────────────────┘
