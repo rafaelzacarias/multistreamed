@@ -6,9 +6,17 @@ WIDTH=${PLACEHOLDER_WIDTH:-3840}
 HEIGHT=${PLACEHOLDER_HEIGHT:-2160}
 FPS=${PLACEHOLDER_FPS:-60}
 BITRATE=${PLACEHOLDER_BITRATE:-23500}
-echo "[FAILOVER] Manually starting placeholder for '$STREAM_NAME'..."
+echo "[FAILOVER] Starting placeholder for '$STREAM_NAME'..."
 
-pkill -f "ffmpeg.*placeholder" 2>/dev/null || true
+# Kill any existing placeholder process using PID file
+if [ -f /tmp/placeholder.pid ]; then
+    OLD_PID=$(cat /tmp/placeholder.pid)
+    # Verify the PID still belongs to an ffmpeg process before killing
+    if [ -f "/proc/$OLD_PID/cmdline" ] && tr '\0' ' ' < "/proc/$OLD_PID/cmdline" 2>/dev/null | grep -q ffmpeg; then
+        kill "$OLD_PID" 2>/dev/null || true
+    fi
+    rm -f /tmp/placeholder.pid
+fi
 
 # GOP size = 2 seconds of frames (YouTube requires keyframes every 2s)
 GOP=$((FPS * 2))
@@ -24,4 +32,5 @@ ffmpeg -f lavfi -i "color=c=0x1a1a2e:s=${WIDTH}x${HEIGHT}:r=${FPS}" \
     -c:a aac -b:a 128k \
     -f flv "rtmp://127.0.0.1/live/$STREAM_NAME" &
 
+echo $! > /tmp/placeholder.pid
 echo "[FAILOVER] Placeholder started (PID: $!)."

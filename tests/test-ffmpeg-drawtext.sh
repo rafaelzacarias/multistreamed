@@ -70,10 +70,17 @@ run_ffmpeg_test() {
 run_ffmpeg_test "start_placeholder.sh drawtext filter" \
     "drawtext=text='Stream Starting Soon':fontsize=120:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2-60,drawtext=text='%{localtime\:%I\\\\\:%M\\\\\:%S %p PT}':fontsize=80:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2+80"
 
-# Test 2: Validate on_publish_done.sh drawtext filter
-# This must match the -vf argument in scripts/on_publish_done.sh
-run_ffmpeg_test "on_publish_done.sh drawtext filter" \
-    "drawtext=text='Stream Starting Soon':fontsize=120:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2-60,drawtext=text='%{localtime\:%I\\\\\:%M\\\\\:%S %p PT}':fontsize=80:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2+80"
+# Test 2: Validate on_publish_done.sh delegates to start_placeholder.sh
+# on_publish_done.sh no longer has an inline ffmpeg command; it calls start_placeholder.sh
+echo -n "Testing: on_publish_done.sh delegates to start_placeholder.sh ... "
+if grep -q "start_placeholder.sh" "$PROJECT_ROOT/scripts/on_publish_done.sh"; then
+    echo -e "${GREEN}✓ PASS${NC}"
+    ((TESTS_PASSED++))
+else
+    echo -e "${RED}✗ FAIL${NC}"
+    echo -e "${RED}  Error: on_publish_done.sh should delegate to start_placeholder.sh${NC}"
+    ((TESTS_FAILED++))
+fi
 
 # Test 3: Verify localtime renders actual time text (not empty/garbled)
 echo -n "Testing: localtime renders time text to image ... "
@@ -104,13 +111,13 @@ else
     ((TESTS_FAILED++))
 fi
 
-echo -n "Testing: on_publish_done.sh has valid drawtext syntax ... "
-if grep -q "drawtext=text='%{localtime" "$PROJECT_ROOT/scripts/on_publish_done.sh"; then
+echo -n "Testing: on_publish_done.sh does not duplicate ffmpeg command ... "
+if ! grep -q "drawtext=text='%{localtime" "$PROJECT_ROOT/scripts/on_publish_done.sh"; then
     echo -e "${GREEN}✓ PASS${NC}"
     ((TESTS_PASSED++))
 else
     echo -e "${RED}✗ FAIL${NC}"
-    echo -e "${RED}  Error: on_publish_done.sh missing drawtext localtime filter${NC}"
+    echo -e "${RED}  Error: on_publish_done.sh should not contain inline ffmpeg command (use start_placeholder.sh)${NC}"
     ((TESTS_FAILED++))
 fi
 

@@ -10,5 +10,5 @@ if [ "$CLIENT_ADDR" = "127.0.0.1" ]; then
 fi
 
 echo "[FAILOVER] Live stream '$STREAM_NAME' started publishing from $CLIENT_ADDR. Stopping placeholder..."
-pkill -f "ffmpeg.*placeholder" 2>/dev/null || true
+/scripts/stop_placeholder.sh
 echo "[FAILOVER] Placeholder stopped. Live stream is active."
